@@ -25,6 +25,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 import java.nio.charset.StandardCharsets;
+import java.util.TimeZone;
 
 public class TeltonikaProtocolEncoder extends BaseProtocolEncoder {
 
@@ -49,18 +50,39 @@ public class TeltonikaProtocolEncoder extends BaseProtocolEncoder {
         return buf;
     }
 
-    @Override
+     @Override
     protected Object encodeCommand(Command command) {
 
-        if (command.getType().equals(Command.TYPE_CUSTOM)) {
-            String data = command.getString(Command.KEY_DATA);
-            if (data.matches("(\\p{XDigit}{2})+")) {
-                return encodeContent(DataConverter.parseHex(data));
-            } else {
-                return encodeContent((data + "\r\n").getBytes(StandardCharsets.US_ASCII));
-            }
-        } else {
-            return null;
+        String data = command.getString(Command.KEY_DATA);
+        switch (command.getType()) {
+            case Command.TYPE_CUSTOM:
+                if (data.matches("(\\p{XDigit}{2})+")) {
+                    return encodeContent(DataConverter.parseHex(data));
+                } else {
+                    return encodeContent((data + "\r\n").getBytes(StandardCharsets.US_ASCII));
+                }
+            case Command.TYPE_POSITION_SINGLE:
+                return encodeContent(("getgps" + "\r\n").getBytes(StandardCharsets.US_ASCII));
+            case Command.TYPE_POSITION_PERIODIC:
+                return encodeContent(("setparam 10050:" + command.getAttributes().get(Command.KEY_FREQUENCY)
+                        + ";10055:" + command.getAttributes().get(Command.KEY_FREQUENCY) + "\r\n").getBytes(StandardCharsets.US_ASCII));
+            case Command.TYPE_ENGINE_STOP:
+                // return encodeContent(("setdigout 1? 0 0 20 ?;setdigout 1 0 20" + "\r\n").getBytes(StandardCharsets.US_ASCII));
+                return encodeContent(("setdigout 1 0 20" + "\r\n").getBytes(StandardCharsets.US_ASCII));
+            case Command.TYPE_ENGINE_RESUME:
+                //return encodeContent(("setdigout 0?;setdigout 0" + "\r\n").getBytes(StandardCharsets.US_ASCII));
+                return encodeContent(("setdigout 0" + "\r\n").getBytes(StandardCharsets.US_ASCII));
+            case Command.TYPE_SET_TIMEZONE:
+                int timezone = TimeZone.getTimeZone(command.getString(Command.KEY_TIMEZONE)).getRawOffset()/ 3600000;
+                return encodeContent(("setparam 3006:" + timezone + "\r\n").getBytes(StandardCharsets.US_ASCII));
+            case Command.TYPE_ALARM_SPEED:
+                return encodeContent(("setparam 11100:2;11104:" + command.getAttributes().get(Command.KEY_DATA) + "\r\n").getBytes(StandardCharsets.US_ASCII));
+            case Command.TYPE_ALARM_ARM:
+                return encodeContent(("setparam 50000:2;7000:1;50180:2;11600:2" + "\r\n").getBytes(StandardCharsets.US_ASCII));
+            case Command.TYPE_ALARM_DISARM:
+                return encodeContent(("setparam 50000:1;7000:0;50180:0;11600:0" + "\r\n").getBytes(StandardCharsets.US_ASCII));
+            default:
+                return null;
         }
     }
 

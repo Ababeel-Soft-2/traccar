@@ -27,6 +27,16 @@ public class TeltonikaProtocol extends BaseProtocol {
 
     @Inject
     public TeltonikaProtocol(Config config) {
+         setSupportedDataCommands(
+                Command.TYPE_CUSTOM,
+                Command.TYPE_POSITION_SINGLE,
+                Command.TYPE_POSITION_PERIODIC,
+                Command.TYPE_ENGINE_STOP,
+                Command.TYPE_ENGINE_RESUME,
+                Command.TYPE_SET_TIMEZONE,
+                Command.TYPE_ALARM_SPEED,
+                Command.TYPE_ALARM_ARM,
+                Command.TYPE_ALARM_DISARM);
         setSupportedDataCommands(
                 Command.TYPE_CUSTOM);
         addServer(new TrackerServer(config, getName(), false) {
